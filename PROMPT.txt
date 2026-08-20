@@ -1,0 +1,1159 @@
+Prompt — Modelagem do Banco de Dados do LP Tracker
+
+Você é um engenheiro de software responsável por implementar o banco de dados de um sistema de tracking de Landing Pages.
+
+O sistema possui um JavaScript Tracker instalado nas Landing Pages. Esse tracker envia eventos via HTTP POST para um webhook do n8n. O n8n será responsável por receber o payload, validar/processar os dados e persistir as informações no banco de dados.
+
+A implementação deve utilizar PostgreSQL.
+
+O banco deve ser simples, normalizado e preparado para consultas analíticas futuras.
+
+1. Objetivo do banco
+
+O banco precisa permitir responder perguntas como:
+
+Quantas Landing Pages/sites estão sendo monitoradas?
+Quantas sessões cada site recebeu?
+Quantas sessões começaram em determinado período?
+Quantos usuários chegaram a carregar a página?
+Quantos chegaram a 25%, 50%, 75% e 100% da página?
+Quantos cliques cada CTA recebeu?
+Qual CTA teve mais cliques?
+Quantas sessões iniciaram um formulário?
+Quantas sessões enviaram um formulário?
+Qual a taxa de conversão de cada etapa?
+Qual foi a origem/referrer das sessões?
+Qual página gerou determinado evento?
+Qual dispositivo/resolução foi utilizado?
+Qual foi a jornada de eventos de uma sessão específica?
+
+Não criar tabelas ou campos específicos para métricas calculadas. As métricas devem ser derivadas posteriormente a partir dos eventos armazenados.
+
+2. Arquitetura
+
+Criar exatamente estas três tabelas principais:
+
+sites
+   │
+   │ 1:N
+   ▼
+sessions
+   │
+   │ 1:N
+   ▼
+events
+
+Relacionamento:
+
+sites.id
+    ↓
+sessions.site_id
+
+
+sessions.id
+    ↓
+events.session_id
+
+
+sites.id
+    ↓
+events.site_id
+3. Tabela sites
+
+A tabela sites representa cada Landing Page/projeto/cliente que utiliza o tracker.
+
+Colunas
+id
+
+Tipo:
+
+UUID
+
+Responsabilidade:
+
+Identificador interno do site.
+
+Valor:
+
+UUID gerado pelo banco ou pela aplicação.
+
+Exemplo:
+
+550e8400-e29b-41d4-a716-446655440000
+
+Não deve ser o valor enviado no data-site.
+
+site_key
+
+Tipo:
+
+VARCHAR(100)
+
+Obrigatório:
+
+NOT NULL
+
+Único:
+
+UNIQUE
+
+Responsabilidade:
+
+Identificador público utilizado pelo JavaScript Tracker no atributo:
+
+data-site="..."
+
+Exemplo:
+
+mpa-advogados
+
+Outro exemplo:
+
+somaxi
+
+Se a LP possuir:
+
+<script
+    src="https://tracker.seudominio.com/v1/script.js"
+    data-site="mpa-advogados">
+</script>
+
+então:
+
+sites.site_key = "mpa-advogados"
+name
+
+Tipo:
+
+VARCHAR(255)
+
+Responsabilidade:
+
+Nome amigável do site/cliente.
+
+Exemplo:
+
+MPA Advogados
+domain
+
+Tipo:
+
+VARCHAR(255)
+
+Responsabilidade:
+
+Domínio principal associado ao site.
+
+Exemplo:
+
+mpa.com.br
+
+Pode ser NULL caso o site ainda não tenha domínio definido.
+
+active
+
+Tipo:
+
+BOOLEAN
+
+Padrão:
+
+TRUE
+
+Responsabilidade:
+
+Indica se o site está ativo para receber/processar eventos.
+
+Valores:
+
+TRUE
+FALSE
+
+Não apagar o site quando ele deixar de ser utilizado. Preferir desativá-lo.
+
+created_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Responsabilidade:
+
+Momento em que o site foi cadastrado.
+
+Valor:
+
+Timestamp gerado automaticamente.
+
+updated_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Responsabilidade:
+
+Momento da última alteração do cadastro.
+
+Deve ser atualizado sempre que os dados do site forem modificados.
+
+4. Tabela sessions
+
+A tabela sessions representa uma sessão de navegação de um visitante em um determinado site.
+
+Uma sessão possui um session_id gerado pelo JavaScript Tracker.
+
+O timeout padrão da sessão é de 30 minutos de inatividade, mas esse valor pode ser configurado no tracker.
+
+Importante:
+
+O banco não deve tentar gerar novamente o session_id.
+
+O session_id enviado pelo Tracker deve ser armazenado.
+
+Colunas
+id
+
+Tipo:
+
+UUID
+
+Responsabilidade:
+
+Identificador interno da sessão.
+
+Valor:
+
+UUID gerado pelo banco/aplicação.
+
+Não confundir com session_id.
+
+session_id
+
+Tipo:
+
+VARCHAR(100)
+
+Obrigatório:
+
+NOT NULL
+
+Responsabilidade:
+
+Identificador da sessão gerado pelo JavaScript Tracker.
+
+Exemplo:
+
+sess_mf8k1z_92ab31cd
+
+Esse valor vem diretamente do payload:
+
+{
+    "session_id": "sess_mf8k1z_92ab31cd"
+}
+
+Deve possuir índice.
+
+Não assumir que session_id seja globalmente único entre todos os sites.
+
+A combinação recomendada é:
+
+(site_id, session_id)
+site_id
+
+Tipo:
+
+UUID
+
+Obrigatório:
+
+NOT NULL
+
+Foreign Key:
+
+sites.id
+
+Responsabilidade:
+
+Identifica qual site originou a sessão.
+
+O n8n recebe:
+
+site_id = "mpa-advogados"
+
+e deve localizar:
+
+sites.site_key = "mpa-advogados"
+
+para obter:
+
+sites.id
+
+Esse UUID deve ser armazenado em sessions.site_id.
+
+started_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Obrigatório:
+
+NOT NULL
+
+Responsabilidade:
+
+Momento em que a sessão foi criada pelo tracker.
+
+Vem do campo:
+
+session_started_at
+
+Exemplo:
+
+2026-08-20T15:00:00.000Z
+last_activity_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Obrigatório:
+
+NOT NULL
+
+Responsabilidade:
+
+Momento da última atividade conhecida da sessão.
+
+Deve ser atualizado quando novos eventos da mesma sessão forem recebidos.
+
+Exemplo:
+
+2026-08-20T15:30:00.000Z
+ended_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Pode ser:
+
+NULL
+
+Responsabilidade:
+
+Momento em que a sessão foi considerada encerrada.
+
+Não deve ser preenchido simplesmente porque chegou um page_exit.
+
+A ausência de atividade durante o timeout pode ser utilizada posteriormente para determinar o encerramento.
+
+No MVP, pode permanecer NULL e ser preenchido posteriormente por processo de consolidação.
+
+landing_url
+
+Tipo:
+
+TEXT
+
+Responsabilidade:
+
+URL da primeira página acessada durante a sessão.
+
+Exemplo:
+
+https://mpa.com.br/
+
+Importante:
+
+Não atualizar esse campo a cada evento.
+
+Ele representa a landing page inicial da sessão.
+
+landing_path
+
+Tipo:
+
+TEXT
+
+Responsabilidade:
+
+Path da primeira página acessada.
+
+Exemplo:
+
+/
+
+Ou:
+
+/lp/advocacia-empresarial
+referrer
+
+Tipo:
+
+TEXT
+
+Pode ser:
+
+NULL
+
+Responsabilidade:
+
+Origem da navegação informada pelo navegador.
+
+Exemplo:
+
+https://www.google.com/
+
+Se o visitante acessar diretamente e document.referrer estiver vazio:
+
+NULL
+
+Não substituir por "direct" no banco. Se desejado, "direct" deve ser derivado posteriormente.
+
+user_agent
+
+Tipo:
+
+TEXT
+
+Responsabilidade:
+
+User Agent informado pelo navegador.
+
+Exemplo:
+
+Mozilla/5.0 (...)
+language
+
+Tipo:
+
+VARCHAR(20)
+
+Responsabilidade:
+
+Idioma/preferência linguística do navegador.
+
+Vem de:
+
+navigator.language
+
+Exemplo:
+
+pt-BR
+screen_width
+
+Tipo:
+
+INTEGER
+
+Responsabilidade:
+
+Largura total da tela.
+
+Exemplo:
+
+1920
+screen_height
+
+Tipo:
+
+INTEGER
+
+Responsabilidade:
+
+Altura total da tela.
+
+Exemplo:
+
+1080
+viewport_width
+
+Tipo:
+
+INTEGER
+
+Responsabilidade:
+
+Largura disponível da viewport.
+
+Exemplo:
+
+1920
+viewport_height
+
+Tipo:
+
+INTEGER
+
+Responsabilidade:
+
+Altura disponível da viewport.
+
+Exemplo:
+
+947
+created_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Responsabilidade:
+
+Momento em que o registro da sessão foi criado no banco.
+
+Não necessariamente é exatamente igual a started_at, pois pode existir um pequeno atraso entre o evento ser criado pelo navegador e ser processado pelo n8n.
+
+updated_at
+
+Tipo:
+
+TIMESTAMPTZ
+
+Responsabilidade:
+
+Momento da última alteração do registro da sessão.
+
+5. Tabela events
+
+A tabela events é a principal tabela de analytics.
+
+Cada evento recebido do tracker deve gerar um registro nessa tabela.
+
+Exemplo:
+
+page_view
+page_loaded
+scroll_25
+scroll_50
+button_click
+form_start
+form_submit
+
+Não criar uma tabela diferente para cada tipo de evento.
+
+Todos devem ser armazenados em events.
+
+Colunas
+id
+
+Tipo:
+
+BIGSERIAL
+
+ou:
+
+BIGINT GENERATED ALWAYS AS IDENTITY
+
+Responsabilidade:
+
+Identificador interno sequencial do registro.
+
+event_id
+
+Tipo:
+
+VARCHAR(100)
+
+Obrigatório:
+
+NOT NULL
+
+Único:
+
+UNIQUE
+
+Responsabilidade:
+
+Identificador único do evento gerado pelo JavaScript Tracker.
+
+Exemplo:
+
+evt_mf8k2x_7a91bc2d
+
+É extremamente importante possuir uma constraint UNIQUE.
+
+Isso permite proteção contra eventos duplicados caso o n8n ou o navegador tente reenviar o mesmo evento.
+
+site_id
+
+Tipo:
+
+UUID
+
+Obrigatório:
+
+NOT NULL
+
+Foreign Key:
+
+sites.id
+
+Responsabilidade:
+
+Site que originou o evento.
+
+session_id
+
+Tipo:
+
+UUID
+
+ou FK para:
+
+sessions.id
+
+Recomendação:
+
+Usar a FK para sessions.id.
+
+Responsabilidade:
+
+Sessão à qual o evento pertence.
+
+O payload do tracker contém o session_id público, portanto o n8n deve localizar a sessão correspondente e armazenar seu UUID interno.
+
+event_name
+
+Tipo:
+
+VARCHAR(100)
+
+Obrigatório:
+
+NOT NULL
+
+Responsabilidade:
+
+Nome do evento.
+
+Exemplos:
+
+page_view
+page_loaded
+scroll_25
+scroll_50
+scroll_75
+scroll_100
+button_click
+page_exit
+form_start
+form_submit
+video_play
+video_complete
+whatsapp_click
+
+Não criar ENUM para essa coluna.
+
+Eventos personalizados devem ser permitidos sem alteração no schema.
+
+timestamp
+
+Tipo:
+
+TIMESTAMPTZ
+
+Obrigatório:
+
+NOT NULL
+
+Responsabilidade:
+
+Momento em que o evento ocorreu no navegador.
+
+Vem do campo:
+
+{
+    "timestamp": "2026-08-20T15:30:00.000Z"
+}
+
+Não substituir esse valor pelo horário em que o n8n recebeu/processou o evento.
+
+Se necessário, adicionar futuramente uma coluna separada para received_at.
+
+page_url
+
+Tipo:
+
+TEXT
+
+Responsabilidade:
+
+URL completa da página onde o evento ocorreu.
+
+Exemplo:
+
+https://mpa.com.br/consultoria?utm_source=google
+page_path
+
+Tipo:
+
+TEXT
+
+Responsabilidade:
+
+Path da página.
+
+Exemplo:
+
+/consultoria
+page_title
+
+Tipo:
+
+TEXT
+
+Responsabilidade:
+
+Título da página no momento do evento.
+
+Exemplo:
+
+Consultoria Jurídica Empresarial
+data
+
+Tipo:
+
+JSONB
+
+Pode ser:
+
+NULL
+
+Responsabilidade:
+
+Armazenar informações específicas do evento.
+
+Essa coluna é propositalmente flexível.
+
+Não criar novas colunas no banco para cada novo tipo de evento.
+
+6. Exemplos da coluna events.data
+page_view
+
+Pode conter:
+
+{
+    "loaded_at_script": true
+}
+page_loaded
+{
+    "load_time": 1842
+}
+
+load_time é o tempo aproximado em milissegundos para o evento load.
+
+scroll_25
+{
+    "percentage": 25
+}
+scroll_50
+{
+    "percentage": 50
+}
+scroll_75
+{
+    "percentage": 75
+}
+scroll_100
+{
+    "percentage": 100
+}
+button_click
+
+Para:
+
+<button
+    data-track="cta"
+    data-track-name="hero">
+    Quero falar com um especialista
+</button>
+
+armazenar:
+
+{
+    "track": "cta",
+    "track_name": "hero",
+    "tag": "button",
+    "text": "Quero falar com um especialista",
+    "href": null
+}
+
+Outro exemplo:
+
+{
+    "track": "cta",
+    "track_name": "footer",
+    "tag": "a",
+    "text": "Solicitar orçamento",
+    "href": "#formulario"
+}
+form_start
+{
+    "form": "lead"
+}
+form_submit
+{
+    "form": "lead"
+}
+
+Não armazenar dados pessoais do formulário nessa coluna.
+
+Por exemplo, NÃO armazenar:
+
+{
+    "email": "cliente@email.com",
+    "phone": "..."
+}
+
+O tracker é responsável por analytics, não por armazenar os dados enviados pelo formulário.
+
+Evento personalizado
+
+A LP pode enviar:
+
+LPTracker.track("whatsapp_click", {
+    position: "hero"
+});
+
+O banco deve armazenar:
+
+event_name = whatsapp_click
+
+e:
+
+{
+    "position": "hero"
+}
+7. Regras de eventos
+
+Os seguintes eventos são considerados eventos únicos por sessão:
+
+page_view
+page_loaded
+scroll_25
+scroll_50
+scroll_75
+scroll_100
+
+O button_click NÃO é único.
+
+Exemplo:
+
+Se o usuário clicar 3 vezes:
+
+button_click
+button_click
+button_click
+
+devem existir três registros em events.
+
+Cada registro terá um event_id diferente.
+
+8. Eventos personalizados
+
+O tracker permite:
+
+LPTracker.track(
+    "form_start",
+    {
+        form: "lead"
+    }
+);
+
+Por padrão, eventos personalizados podem ocorrer múltiplas vezes.
+
+Também existe:
+
+LPTracker.track(
+    "video_started",
+    {
+        video: "vsl"
+    },
+    {
+        unique: true
+    }
+);
+
+O banco não precisa saber se o evento é unique.
+
+Essa regra é responsabilidade do tracker.
+
+O banco deve simplesmente armazenar todos os eventos recebidos, respeitando a unicidade de event_id.
+
+9. Payload esperado pelo backend
+
+O n8n deverá receber payloads semelhantes a:
+
+{
+    "event_id": "evt_mf8k2x_7a91bc2d",
+    "event": "button_click",
+    "timestamp": "2026-08-20T15:30:00.000Z",
+
+
+    "site_id": "mpa-advogados",
+    "session_id": "sess_abc123",
+
+
+    "session_started_at": "2026-08-20T15:00:00.000Z",
+    "session_last_activity": "2026-08-20T15:30:00.000Z",
+
+
+    "page": {
+        "url": "https://mpa.com.br/",
+        "path": "/",
+        "title": "Landing Page",
+        "referrer": "https://google.com/"
+    },
+
+
+    "device": {
+        "user_agent": "Mozilla/5.0 ...",
+        "language": "pt-BR",
+        "screen_width": 1920,
+        "screen_height": 1080,
+        "viewport_width": 1920,
+        "viewport_height": 947
+    },
+
+
+    "data": {
+        "track": "cta",
+        "track_name": "hero",
+        "tag": "button",
+        "text": "Quero falar com um especialista",
+        "href": null
+    }
+}
+10. Processamento no n8n
+
+Ao receber um evento, o workflow deverá:
+
+Etapa 1 — Validar payload
+
+Verificar pelo menos:
+
+event_id
+event
+timestamp
+site_id
+session_id
+
+Se algum campo obrigatório estiver ausente, rejeitar ou registrar o erro sem inserir um evento inválido.
+
+Etapa 2 — Resolver o site
+
+Buscar:
+
+sites.site_key = payload.site_id
+
+Se não existir:
+
+não criar automaticamente um site
+
+A menos que essa seja uma decisão explícita da aplicação.
+
+Para o MVP, sites devem ser cadastrados previamente.
+
+Etapa 3 — Resolver/criar sessão
+
+Buscar:
+
+sessions.site_id = site.id
+AND
+sessions.session_id = payload.session_id
+
+Se não existir:
+
+Criar a sessão utilizando:
+
+payload.session_id
+payload.session_started_at
+payload.session_last_activity
+payload.page.url
+payload.page.path
+payload.page.referrer
+payload.device.*
+
+Se existir:
+
+Atualizar:
+
+last_activity_at
+updated_at
+
+Não alterar:
+
+started_at
+landing_url
+landing_path
+referrer
+
+pois esses campos representam o início da sessão.
+
+Etapa 4 — Inserir evento
+
+Inserir:
+
+event_id
+site_id
+session_id
+event_name
+timestamp
+page_url
+page_path
+page_title
+data
+created_at
+
+Se event_id já existir, não criar outro registro.
+
+Utilizar:
+
+ON CONFLICT (event_id) DO NOTHING
+
+ou equivalente.
+
+11. Índices
+
+Criar pelo menos os seguintes índices:
+
+sites.site_key UNIQUE
+
+
+sessions(site_id, session_id) UNIQUE
+
+
+sessions.site_id
+
+
+sessions.last_activity_at
+
+
+events.event_id UNIQUE
+
+
+events.site_id
+
+
+events.session_id
+
+
+events.event_name
+
+
+events.timestamp
+
+
+events(site_id, timestamp)
+
+O índice:
+
+events(site_id, timestamp)
+
+é especialmente importante para dashboards futuros.
+
+12. Tipos de timestamp
+
+Todos os timestamps devem utilizar:
+
+TIMESTAMPTZ
+
+Não utilizar:
+
+TIMESTAMP
+
+sem timezone.
+
+O sistema deve armazenar os timestamps em UTC.
+
+A apresentação para o usuário pode posteriormente converter para:
+
+America/Sao_Paulo
+
+ou outro timezone.
+
+13. O que NÃO deve ser criado
+
+Não criar tabelas separadas como:
+
+page_views
+clicks
+scrolls
+forms
+videos
+ctas
+
+Todos esses comportamentos são eventos:
+
+events
+
+Não criar colunas:
+
+clicked_hero
+clicked_footer
+scroll_25
+scroll_50
+form_started
+form_submitted
+
+Essas informações devem ser derivadas dos eventos.
+
+Não criar uma coluna para cada novo evento personalizado.
+
+Utilizar:
+
+event_name
+data JSONB
+14. Resultado esperado
+
+A implementação final deverá possuir:
+
+sites
+├── id
+├── site_key
+├── name
+├── domain
+├── active
+├── created_at
+└── updated_at
+
+
+sessions
+├── id
+├── session_id
+├── site_id
+├── started_at
+├── last_activity_at
+├── ended_at
+├── landing_url
+├── landing_path
+├── referrer
+├── user_agent
+├── language
+├── screen_width
+├── screen_height
+├── viewport_width
+├── viewport_height
+├── created_at
+└── updated_at
+
+
+events
+├── id
+├── event_id
+├── site_id
+├── session_id
+├── event_name
+├── timestamp
+├── page_url
+├── page_path
+├── page_title
+├── data
+└── created_at
+
+A prioridade é manter o schema simples, flexível e orientado a eventos.
+
+O sistema deverá permitir adicionar novos eventos no futuro sem alterações estruturais no banco de dados.
