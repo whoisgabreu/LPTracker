@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LP Tracker - Documentacao</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.7;
+            color: #1e293b;
+            background: #fff;
+        }
+
+        header {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        header nav a {
+            margin-left: 2rem;
+            text-decoration: none;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        header nav a:hover { color: #2563eb; }
+
+        .hero {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            color: #fff;
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 { font-size: 2.8rem; margin-bottom: 1rem; }
+
+        .hero p {
+            font-size: 1.15rem;
+            max-width: 650px;
+            margin: 0 auto 2rem;
+            opacity: 0.9;
+            line-height: 1.8;
+        }
+
+        .hero code {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary { background: #fff; color: #2563eb; }
+        .btn-secondary { background: #2563eb; color: #fff; }
+
+        section { padding: 4rem 2rem; }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: #0f172a;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 3rem;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+
+        /* Architecture */
+        .arch-diagram {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            line-height: 2;
+            color: #334155;
+        }
+
+        .arch-diagram .arrow { color: #2563eb; font-weight: bold; }
+
+        /* Code blocks */
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: 'Courier New', Consolas, monospace;
+        }
+
+        p code, li code {
+            background: #f1f5f9;
+            color: #e11d48;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        td code {
+            background: #f1f5f9;
+            color: #e11d48;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        /* Section backgrounds */
+        .bg-gray { background: #f8fafc; }
+
+        /* Steps */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .step {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #2563eb;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .step h3 { margin-bottom: 0.5rem; font-size: 1rem; }
+        .step p { font-size: 0.9rem; color: #64748b; }
+
+        /* Event cards */
+        .event-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .event-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+
+        .event-card h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            color: #0f172a;
+        }
+
+        .event-card p {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+        }
+
+        .event-card pre {
+            font-size: 0.8rem;
+            padding: 1rem;
+            margin: 0;
+        }
+
+        /* API methods */
+        .api-method {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .api-method code {
+            font-size: 0.9rem;
+            color: #2563eb;
+        }
+
+        .api-method span {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        footer {
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        footer a { color: #60a5fa; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        h2 { margin-bottom: 0.25rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">LP Tracker</div>
+        <nav>
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#instalacao">Instalacao</a>
+            <a href="#eventos">Eventos</a>
+            <a href="#api">API</a>
+        </nav>
+    </header>
+
+    <!-- =========================================================
+         HERO
+         ========================================================= -->
+    <section class="hero">
+        <h1>LP Tracker</h1>
+        <p>
+            Tracker JavaScript para Landing Pages. Coleta eventos de
+            interacao e persiste direto em PostgreSQL via uma API Flask.
+            Uma tag <code>&lt;script&gt;</code> e tudo que voce precisa.
+        </p>
+        <a href="#instalacao" class="btn btn-primary">Ver como instalar</a>
+    </section>
+
+    <!-- =========================================================
+         COMO FUNCIONA
+         ========================================================= -->
+    <section id="como-funciona" class="bg-gray">
+        <div class="container">
+            <h2 class="section-title">Como funciona</h2>
+            <p class="section-subtitle">Arquitetura simples e direta</p>
+
+            <div class="arch-diagram">
+Landing Page &nbsp;&nbsp;&nbsp; <span class="arrow">=&gt;</span> &nbsp;&nbsp; script.js &nbsp;&nbsp; <span class="arrow">=&gt;</span> &nbsp;&nbsp; Flask API &nbsp;&nbsp; <span class="arrow">=&gt;</span> &nbsp;&nbsp; PostgreSQL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<br><span style="color:#64748b;">browser</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#64748b;">servidor</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#64748b;">banco</span>
+            </div>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>script.js carrega na LP</h3>
+                    <p>O browser baixa o script e comeca a rastrear automaticamente page_view, scrolls e cliques.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Eventos sao enviados</h3>
+                    <p>Cada interacao gera um payload JSON que e enviado via POST para o endpoint <code>/v1/events</code>.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Flask persiste no banco</h3>
+                    <p>A API valida o payload, resolve site e sessao, e insere o evento no PostgreSQL.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         INSTALACAO
+         ========================================================= -->
+    <section id="instalacao">
+        <div class="container">
+            <h2 class="section-title">Instalacao</h2>
+            <p class="section-subtitle">Adicione uma unica tag na sua Landing Page</p>
+
+<pre><code>&lt;script
+    src="https://tracker.seudominio.com/v1/script.js"
+    data-site="meu-site"
+    data-debug="true"&gt;
+&lt;/script&gt;</code></pre>
+
+            <h3 style="margin-top:2rem; margin-bottom:1rem;">Atributos de configuracao</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Atributo</th>
+                        <th>Obrigatorio</th>
+                        <th>Padrao</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>data-site</code></td>
+                        <td>Sim</td>
+                        <td><code>unknown</code></td>
+                        <td>Identificador do site. Site e criado automaticamente no primeiro evento.</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-webhook</code></td>
+                        <td>Nao</td>
+                        <td><code>/v1/events</code></td>
+                        <td>URL do endpoint de eventos.</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-debug</code></td>
+                        <td>Nao</td>
+                        <td><code>false</code></td>
+                        <td>Habilita logs no console (<code>"true"</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-session-timeout</code></td>
+                        <td>Nao</td>
+                        <td><code>30</code></td>
+                        <td>Timeout da sessao em minutos.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         EVENTOS AUTOMATICOS
+         ========================================================= -->
+    <section id="eventos" class="bg-gray">
+        <div class="container">
+            <h2 class="section-title">Eventos rastreados</h2>
+            <p class="section-subtitle">Todos esses eventos sao coletados automaticamente</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Evento</th>
+                        <th>Quando dispara</th>
+                        <th>Unico por sessao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>page_view</code></td>
+                        <td>Script carrega na pagina</td>
+                        <td>Sim</td>
+                    </tr>
+                    <tr>
+                        <td><code>page_loaded</code></td>
+                        <td>Pagina completamente carregada</td>
+                        <td>Sim</td>
+                    </tr>
+                    <tr>
+                        <td><code>scroll_25</code></td>
+                        <td>25% da pagina rolada</td>
+                        <td>Sim</td>
+                    </tr>
+                    <tr>
+                        <td><code>scroll_50</code></td>
+                        <td>50% da pagina rolada</td>
+                        <td>Sim</td>
+                    </tr>
+                    <tr>
+                        <td><code>scroll_75</code></td>
+                        <td>75% da pagina rolada</td>
+                        <td>Sim</td>
+                    </tr>
+                    <tr>
+                        <td><code>scroll_100</code></td>
+                        <td>100% da pagina rolada</td>
+                        <td>Sim</td>
+                    </tr>
+                    <tr>
+                        <td><code>button_click</code></td>
+                        <td>Clique em elemento com <code>data-track</code></td>
+                        <td>Nao</td>
+                    </tr>
+                    <tr>
+                        <td><code>page_exit</code></td>
+                        <td>Visitante sai da pagina (visibilitychange)</td>
+                        <td>Nao</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         EVENTOS PERSONALIZADOS
+         ========================================================= -->
+    <section id="personalizados">
+        <div class="container">
+            <h2 class="section-title">Eventos personalizados</h2>
+            <p class="section-subtitle">Use <code>LPTracker.track()</code> para rastrear qualquer interacao</p>
+
+            <div class="event-grid">
+
+                <!-- Formulario -->
+                <div class="event-card">
+                    <h4>Formulario</h4>
+                    <p>Rastreia quando o visitante comeca a preencher e quando envia.</p>
+<pre><code>// Ao focar no primeiro input
+LPTracker.track("form_start",
+  { form: "lead" });
+
+// Ao enviar
+LPTracker.track("form_submit",
+  { form: "lead" });</code></pre>
+                </div>
+
+                <!-- VSL / Video -->
+                <div class="event-card">
+                    <h4>VSL / Video</h4>
+                    <p>Rastreia reproducao, progresso e conclusao.</p>
+<pre><code>LPTracker.track("video_started",
+  { video: "vsl", duration: 120 },
+  { unique: true });
+
+LPTracker.track("video_progress",
+  { video: "vsl", percentage: 50 });
+
+LPTracker.track("video_complete",
+  { video: "vsl" });</code></pre>
+                </div>
+
+                <!-- WhatsApp -->
+                <div class="event-card">
+                    <h4>WhatsApp</h4>
+                    <p>Rastreia cliques no botao do WhatsApp.</p>
+<pre><code>LPTracker.track("whatsapp_click",
+  { position: "hero",
+    phone: "5511999999999" });</code></pre>
+                </div>
+
+                <!-- Link Externo -->
+                <div class="event-card">
+                    <h4>Link externo</h4>
+                    <p>Rastreia cliques em links que saem do site.</p>
+<pre><code>LPTracker.track("link_click",
+  { href: "https://...",
+    text: "Visitar parceiro",
+    position: "footer" });</code></pre>
+                </div>
+
+                <!-- CTA -->
+                <div class="event-card">
+                    <h4>CTA (data-track)</h4>
+                    <p>Elementos com <code>data-track</code> ja sao rastreados automaticamente.</p>
+<pre><code>&lt;button
+  data-track="cta"
+  data-track-name="hero"&gt;
+  Comecar agora
+&lt;/button&gt;</code></pre>
+                </div>
+
+                <!-- Evento unico -->
+                <div class="event-card">
+                    <h4>Evento unico</h4>
+                    <p>Use <code>unique: true</code> para eventos que devem ocorrer apenas uma vez por sessao.</p>
+<pre><code>LPTracker.track("video_started",
+  { video: "vsl" },
+  { unique: true });</code></pre>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         API PUBLICA
+         ========================================================= -->
+    <section id="api" class="bg-gray">
+        <div class="container">
+            <h2 class="section-title">API publica</h2>
+            <p class="section-subtitle">Metodos disponiveis via <code>window.LPTracker</code></p>
+
+            <div class="api-method">
+                <code>LPTracker.track(nome, dados, opcoes)</code>
+                <span>Enviar evento personalizado</span>
+            </div>
+            <div class="api-method">
+                <code>LPTracker.getSessionId()</code>
+                <span>Obter ID da sessao atual</span>
+            </div>
+            <div class="api-method">
+                <code>LPTracker.getSession()</code>
+                <span>Obter dados da sessao</span>
+            </div>
+            <div class="api-method">
+                <code>LPTracker.getSiteId()</code>
+                <span>Obter site_id configurado</span>
+            </div>
+            <div class="api-method">
+                <code>LPTracker.getConfig()</code>
+                <span>Obter configuracao completa</span>
+            </div>
+            <div class="api-method">
+                <code>LPTracker.touch()</code>
+                <span>Renovar atividade da sessao manualmente</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         SCHEMA DO BANCO
+         ========================================================= -->
+    <section id="banco">
+        <div class="container">
+            <h2 class="section-title">Schema do banco</h2>
+            <p class="section-subtitle">3 tabelas no PostgreSQL</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tabela</th>
+                        <th>Descricao</th>
+                        <th>Colunas principais</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>sites</code></td>
+                        <td>Cada Landing Page/cliente</td>
+                        <td>id, site_key, name, domain, active</td>
+                    </tr>
+                    <tr>
+                        <td><code>sessions</code></td>
+                        <td>Sessao de navegacao de um visitante</td>
+                        <td>id, session_id, site_id, started_at, last_activity_at</td>
+                    </tr>
+                    <tr>
+                        <td><code>events</code></td>
+                        <td>Cada evento rastreado</td>
+                        <td>id, event_id, site_id, session_id, event_name, timestamp, data</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         FOOTER
+         ========================================================= -->
+    <footer>
+        <p>LP Tracker &mdash; Projeto open source para analytics de Landing Pages</p>
+    </footer>
+
+    <!-- =========================================================
+         LP TRACKER (demonstracao)
+         ========================================================= -->
+    <script
+        src="/v1/script.js"
+        data-site="demo"
+        data-debug="true">
+    </script>
+
+</body>
+</html>

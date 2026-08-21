@@ -53,15 +53,202 @@ Landing Page  →  script.js  →  Flask API (/v1/events)  →  PostgreSQL
 
 ### Eventos personalizados
 
+Use `LPTracker.track()` para rastrear qualquer interação específica.
+
 ```javascript
+LPTracker.track(nome, dados, opcoes);
+```
+
+---
+
+#### Formulário
+
+Rastrear quando o visitante começa a preencher e quando envia o formulário.
+
+```javascript
+(function () {
+    var form = document.getElementById("meu-form");
+    var started = false;
+
+    // form_start — dispara ao focar no primeiro input
+    form.addEventListener("focusin", function () {
+        if (!started) {
+            started = true;
+            LPTracker.track("form_start", { form: "lead" });
+        }
+    });
+
+    // form_submit — dispara ao enviar
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        LPTracker.track("form_submit", { form: "lead" });
+        // ... enviar formulário
+    });
+})();
+```
+
+**Payload armazenado:**
+
+```json
+{ "form": "lead" }
+```
+
+> **Importante:** não armazenar dados pessoais (email, telefone, etc.) no evento. O tracker é apenas para analytics.
+
+---
+
+#### VSL (Vídeo)
+
+Rastrear reprodução, progresso e conclusão de vídeos.
+
+```javascript
+var video = document.getElementById("vsl");
+var milestones = { 25: false, 50: false, 75: false };
+
+// Início da reprodução
+video.addEventListener("play", function () {
+    LPTracker.track("video_started", {
+        video: "vsl",
+        duration: video.duration
+    }, { unique: true });
+});
+
+// Progresso (25%, 50%, 75%)
+video.addEventListener("timeupdate", function () {
+    var pct = (video.currentTime / video.duration) * 100;
+    [25, 50, 75].forEach(function (m) {
+        if (pct >= m && !milestones[m]) {
+            milestones[m] = true;
+            LPTracker.track("video_progress", {
+                video: "vsl",
+                percentage: m
+            });
+        }
+    });
+});
+
+// Conclusão
+video.addEventListener("ended", function () {
+    LPTracker.track("video_complete", { video: "vsl" });
+});
+```
+
+**Payloads armazenados:**
+
+```json
+{ "video": "vsl", "duration": 120 }
+{ "video": "vsl", "percentage": 50 }
+{ "video": "vsl" }
+```
+
+---
+
+#### Links externos
+
+Rastrear cliques em links que saem do site.
+
+```html
+<a
+    href="https://example.com"
+    target="_blank"
+    data-track="link"
+    data-track-name="parceiro">
+    Visitar parceiro
+</a>
+```
+
+O `button_click` já é rastreado automaticamente para elementos com `data-track`. Para rastrear apenas links externos, basta filtrar no banco:
+
+```sql
+SELECT * FROM events
+WHERE event_name = 'button_click'
+  AND data->>'href' LIKE 'https://%';
+```
+
+---
+
+#### WhatsApp
+
+Rastrear cliques no botão do WhatsApp.
+
+```html
+<a
+    href="https://wa.me/5511999999999?text=Olá"
+    target="_blank"
+    data-track="whatsapp"
+    data-track-name="hero">
+    Fale conosco no WhatsApp
+</a>
+```
+
+Ou via JS para controle total:
+
+```javascript
+document.getElementById("whatsapp-btn").addEventListener("click", function () {
+    LPTracker.track("whatsapp_click", {
+        position: "hero",
+        phone: "5511999999999"
+    });
+});
+```
+
+---
+
+#### CTA (Call to Action)
+
+Elementos com `data-track` já são rastreados automaticamente pelo `button_click`.
+
+```html
+<!-- Básico -->
+<button data-track="cta" data-track-name="hero">
+    Começar agora
+</button>
+
+<!-- Link estilizado como botão -->
+<a href="#preco" data-track="cta" data-track-name="nav">
+    Ver planos
+</a>
+
+<!-- Elemento com href externo -->
+<a href="https://app.exemplo.com" data-track="cta" data-track-name="footer">
+    Acessar plataforma
+</a>
+```
+
+**Atributos disponíveis:**
+
+| Atributo | Descrição |
+|----------|-----------|
+| `data-track` | Tipo do evento (ex: `cta`, `whatsapp`, `link`) |
+| `data-track-name` | Identificador específico (ex: `hero`, `footer`, `nav`) |
+
+**Payload armazenado:**
+
+```json
+{
+    "track": "cta",
+    "track_name": "hero",
+    "tag": "button",
+    "text": "Começar agora",
+    "href": null
+}
+```
+
+---
+
+#### Marcar evento como único
+
+Alguns eventos devem ocorrer apenas uma vez por sessão. Use `{ unique: true }`:
+
+```javascript
+// Só registra o primeiro play do vídeo na sessão
+LPTracker.track("video_started", { video: "vsl" }, { unique: true });
+
+// Registrado normalmente (pode ocorrer várias vezes)
 LPTracker.track("whatsapp_click", { position: "hero" });
 ```
 
-Para marcar um evento como único por sessão:
-
-```javascript
-LPTracker.track("video_started", { video: "vsl" }, { unique: true });
-```
+Os eventos `page_view`, `page_loaded`, `scroll_*` já são únicos por padrão.
 
 ### API pública
 

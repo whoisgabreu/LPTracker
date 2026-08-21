@@ -23,6 +23,12 @@ def get_db():
 # STATIC FILES
 # ============================================================
 
+@app.route("/")
+def serve_lp():
+    path = os.path.join(BASE_DIR, "LP", "index.html")
+    return send_file(path)
+
+
 @app.route("/v1/script.js")
 def serve_script():
     path = os.path.join(BASE_DIR, "script.js")
@@ -100,10 +106,23 @@ def receive_event():
         site = cur.fetchone()
 
         if not site:
-            conn.rollback()
-            return jsonify({"error": "Site not found or inactive"}), 404
+            # Auto-create site from first event
+            from urllib.parse import urlparse
+            page_url = payload.get("page", {}).get("url", "")
+            domain = None
+            if page_url:
+                parsed = urlparse(page_url)
+                domain = parsed.hostname or None
 
-        site_id = site["id"]
+            cur.execute(
+                """INSERT INTO sites (site_key, name, domain)
+                   VALUES (%s, %s, %s)
+                   RETURNING id""",
+                (payload["site_id"], payload["site_id"], domain)
+            )
+            site_id = cur.fetchone()["id"]
+        else:
+            site_id = site["id"]
 
         # ----------------------------------------------------------
         # Step 2: Resolve or create session
